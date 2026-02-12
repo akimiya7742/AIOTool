@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chuyển đổi Ảnh sang PDF</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Thư viện jsPDF để tạo file PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Thư viện SortableJS để kéo thả sắp xếp ảnh -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        .image-card:hover .delete-btn { opacity: 1; }
+        .drag-handle { cursor: grab; }
+        .drag-handle:active { cursor: grabbing; }
+        #image-list .sortable-ghost { opacity: 0.3; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans">
+
+    <div class="max-w-5xl mx-auto py-10 px-4">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-slate-800 mb-2">Chuyển đổi Ảnh sang PDF</h1>
+            <p class="text-slate-600">Sắp xếp ảnh của bạn và tạo file PDF chuyên nghiệp chỉ trong vài giây.</p>
+        </header>
+
+        <div class="bg-white rounded-2xl shadow-xl p-6 mb-8">
+            <div class="flex flex-wrap gap-4 items-center justify-between mb-6">
+                <div class="flex gap-2">
+                    <input type="file" id="file-input" multiple accept="image/*" class="hidden">
+                    <button onclick="document.getElementById('file-input').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Thêm ảnh
+                    </button>
+                    <button id="clear-btn" class="bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2.5 rounded-lg font-medium transition hidden">
+                        Xóa tất cả
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex flex-col">
+                        <label class="text-xs text-slate-500 mb-1 ml-1 font-semibold text-uppercase">Định dạng trang</label>
+                        <select id="page-format" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="a4">Khổ A4 tiêu chuẩn</option>
+                            <option value="fullsize">Kích thước gốc (Fullsize)</option>
+                        </select>
+                    </div>
+                    
+                    <div id="orientation-wrapper" class="flex flex-col">
+                        <label class="text-xs text-slate-500 mb-1 ml-1 font-semibold text-uppercase">Hướng trang</label>
+                        <select id="page-orientation" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="p">Dọc (Portrait)</option>
+                            <option value="l">Ngang (Landscape)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-end h-full pt-5">
+                        <button id="download-btn" class="bg-green-600 hover:bg-green-700 text-white px-8 py-2.5 rounded-lg font-bold shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            Tải PDF xuống
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vùng hiển thị danh sách ảnh -->
+            <div id="empty-state" class="border-2 border-dashed border-slate-200 rounded-xl py-20 text-center">
+                <div class="text-slate-400 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <p class="text-slate-500 font-medium">Chưa có ảnh nào được chọn</p>
+                <p class="text-slate-400 text-sm">Nhấn "Thêm ảnh" để bắt đầu</p>
+            </div>
+
+            <div id="image-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <!-- Các thẻ ảnh sẽ được thêm vào đây bằng JS -->
+            </div>
+        </div>
+
+        <div class="text-center text-slate-400 text-sm">
+            Tất cả quá trình xử lý diễn ra trên trình duyệt của bạn. Dữ liệu không được tải lên máy chủ.
+        </div>
+    </div>
+
+    <!-- Thông báo trạng thái -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-2xl transform translate-y-20 transition-transform duration-300 pointer-events-none">
+        Đang tạo file PDF...
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        let selectedImages = [];
+
+        const fileInput = document.getElementById('file-input');
+        const imageList = document.getElementById('image-list');
+        const emptyState = document.getElementById('empty-state');
+        const downloadBtn = document.getElementById('download-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const toast = document.getElementById('toast');
+        const pageFormat = document.getElementById('page-format');
+        const orientationWrapper = document.getElementById('orientation-wrapper');
+
+        // Ẩn/hiện chọn hướng trang dựa trên định dạng
+        pageFormat.addEventListener('change', () => {
+            if (pageFormat.value === 'fullsize') {
+                orientationWrapper.classList.add('hidden');
+            } else {
+                orientationWrapper.classList.remove('hidden');
+            }
+        });
+
+        // Khởi tạo tính năng kéo thả
+        new Sortable(imageList, {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function() {
+                updateImagesOrder();
+            }
+        });
+
+        // Xử lý khi chọn file
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const id = Date.now() + Math.random().toString(36).substr(2, 9);
+                    selectedImages.push({
+                        id: id,
+                        src: event.target.result,
+                        name: file.name
+                    });
+                    renderImages();
+                };
+                reader.readAsDataURL(file);
+            });
+            fileInput.value = ''; // Reset input
+        });
+
+        // Cập nhật lại thứ tự mảng dựa trên DOM sau khi kéo thả
+        function updateImagesOrder() {
+            const newOrderIds = Array.from(imageList.children).map(child => child.dataset.id);
+            const reordered = newOrderIds.map(id => selectedImages.find(img => img.id === id));
+            selectedImages = reordered;
+        }
+
+        // Hiển thị danh sách ảnh
+        function renderImages() {
+            if (selectedImages.length > 0) {
+                emptyState.classList.add('hidden');
+                downloadBtn.disabled = false;
+                clearBtn.classList.remove('hidden');
+                imageList.innerHTML = '';
+                
+                selectedImages.forEach((img) => {
+                    const div = document.createElement('div');
+                    div.className = 'image-card relative bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm group';
+                    div.dataset.id = img.id;
+                    div.innerHTML = `
+                        <div class="aspect-square w-full bg-slate-100 flex items-center justify-center overflow-hidden">
+                            <img src="${img.src}" class="object-cover w-full h-full">
+                        </div>
+                        <div class="p-2 text-xs truncate text-slate-500 bg-white border-t flex items-center justify-between">
+                            <span class="truncate pr-2">${img.name}</span>
+                            <div class="drag-handle text-slate-300 hover:text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+                                </svg>
+                            </div>
+                        </div>
+                        <button onclick="removeImage('${img.id}')" class="delete-btn absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 transition-opacity shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    `;
+                    imageList.appendChild(div);
+                });
+            } else {
+                emptyState.classList.remove('hidden');
+                downloadBtn.disabled = true;
+                clearBtn.classList.add('hidden');
+                imageList.innerHTML = '';
+            }
+        }
+
+        // Xóa một ảnh
+        window.removeImage = (id) => {
+            selectedImages = selectedImages.filter(img => img.id !== id);
+            renderImages();
+        };
+
+        // Xóa tất cả
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Bạn có chắc chắn muốn xóa tất cả ảnh đã chọn?')) {
+                selectedImages = [];
+                renderImages();
+            }
+        });
+
+        // Tạo và tải file PDF
+        downloadBtn.addEventListener('click', async () => {
+            showToast("Đang chuẩn bị file PDF...");
+            downloadBtn.disabled = true;
+
+            const isFullsize = pageFormat.value === 'fullsize';
+            const orientation = document.getElementById('page-orientation').value;
+            
+            // Khởi tạo PDF tạm thời
+            let pdf = new jsPDF({
+                orientation: orientation,
+                unit: 'px', // Sử dụng pixel để dễ tính toán fullsize
+                format: 'a4'
+            });
+
+            for (let i = 0; i < selectedImages.length; i++) {
+                const imgData = selectedImages[i].src;
+                const img = new Image();
+                img.src = imgData;
+                
+                await new Promise(resolve => {
+                    img.onload = () => {
+                        const imgProps = pdf.getImageProperties(imgData);
+                        const w = imgProps.width;
+                        const h = imgProps.height;
+
+                        if (isFullsize) {
+                            // Tạo trang mới với đúng kích thước ảnh
+                            if (i === 0) {
+                                // Khởi tạo lại PDF với kích thước trang đầu tiên
+                                pdf = new jsPDF({
+                                    orientation: w > h ? 'l' : 'p',
+                                    unit: 'px',
+                                    format: [w, h]
+                                });
+                            } else {
+                                pdf.addPage([w, h], w > h ? 'l' : 'p');
+                            }
+                            pdf.addImage(imgData, 'JPEG', 0, 0, w, h);
+                        } else {
+                            // Chế độ A4 (mm)
+                            // Nếu là vòng lặp đầu tiên, chúng ta cần chuyển đổi PDF sang đơn vị mm cho A4
+                            if (i === 0) {
+                                pdf = new jsPDF({
+                                    orientation: orientation,
+                                    unit: 'mm',
+                                    format: 'a4'
+                                });
+                            } else {
+                                pdf.addPage();
+                            }
+
+                            const pageWidth = pdf.internal.pageSize.getWidth();
+                            const pageHeight = pdf.internal.pageSize.getHeight();
+                            const margin = 10;
+                            const usableWidth = pageWidth - (margin * 2);
+                            const usableHeight = pageHeight - (margin * 2);
+
+                            // Lấy lại thông số ảnh theo đơn vị mm của doc mới
+                            const mmProps = pdf.getImageProperties(imgData);
+                            let drawW = usableWidth;
+                            let drawH = (mmProps.height * drawW) / mmProps.width;
+
+                            if (drawH > usableHeight) {
+                                drawH = usableHeight;
+                                drawW = (mmProps.width * drawH) / mmProps.height;
+                            }
+
+                            const x = margin + (usableWidth - drawW) / 2;
+                            const y = margin + (usableHeight - drawH) / 2;
+
+                            pdf.addImage(imgData, 'JPEG', x, y, drawW, drawH);
+                        }
+                        resolve();
+                    };
+                });
+            }
+
+            pdf.save('images-to-pdf-' + Date.now() + '.pdf');
+            
+            downloadBtn.disabled = false;
+            showToast("Đã tải PDF thành công!", 3000);
+        });
+
+        function showToast(message, duration = 2000) {
+            toast.innerText = message;
+            toast.style.transform = 'translateY(0)';
+            setTimeout(() => {
+                toast.style.transform = 'translateY(80px)';
+            }, duration);
+        }
+    </script>
+</body>
+</html>

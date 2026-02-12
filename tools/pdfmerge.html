@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Merger - Công cụ ghép PDF chuyên nghiệp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .drag-over { border-color: #3b82f6; background-color: #eff6ff; }
+        .file-item { transition: all 0.2s ease; }
+        .file-item:hover { transform: translateY(-2px); }
+        .ghost { opacity: 0.5; background: #dbeafe; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-900">
+
+    <div class="max-w-4xl mx-auto py-12 px-4">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-gray-900 mb-2">
+                <i class="fas fa-file-pdf text-red-600 mr-2"></i>PDF Merger
+            </h1>
+            <p class="text-gray-600">Ghép nhiều file PDF thành một tài liệu duy nhất nhanh chóng và an toàn.</p>
+        </div>
+
+        <!-- Dropzone -->
+        <div id="dropzone" class="border-4 border-dashed border-gray-300 rounded-2xl p-10 text-center cursor-pointer hover:border-blue-400 transition-colors bg-white shadow-sm">
+            <input type="file" id="fileInput" multiple accept=".pdf" class="hidden">
+            <div class="space-y-4">
+                <div class="text-5xl text-blue-500">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div>
+                    <p class="text-xl font-medium text-gray-700">Kéo và thả file PDF vào đây</p>
+                    <p class="text-sm text-gray-500 mt-1">Hoặc nhấp để chọn từ máy tính của bạn</p>
+                </div>
+                <button onclick="document.getElementById('fileInput').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full font-semibold transition-all">
+                    Chọn File
+                </button>
+            </div>
+        </div>
+
+        <!-- File List Section -->
+        <div id="fileSection" class="mt-10 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800">Danh sách file (<span id="fileCount">0</span>)</h2>
+                <div class="space-x-2">
+                    <button onclick="clearFiles()" class="text-sm text-red-600 hover:underline">Xóa tất cả</button>
+                </div>
+            </div>
+            
+            <p class="text-sm text-gray-500 mb-4"><i class="fas fa-info-circle mr-1"></i> Bạn có thể kéo thả để thay đổi thứ tự ghép file.</p>
+
+            <div id="fileList" class="space-y-3 mb-8">
+                <!-- File items will be injected here -->
+            </div>
+
+            <!-- Action Button -->
+            <div class="flex justify-center">
+                <button id="mergeBtn" class="bg-green-600 hover:bg-green-700 text-white text-lg px-10 py-4 rounded-xl font-bold shadow-lg transition-all flex items-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-layer-group"></i>
+                    <span>Ghép và Tải về ngay</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Processing Modal (Hidden) -->
+        <div id="loader" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden flex items-center justify-center z-50">
+            <div class="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-xs w-full">
+                <div class="animate-spin text-4xl text-blue-600 mb-4">
+                    <i class="fas fa-circle-notch"></i>
+                </div>
+                <p class="font-bold text-gray-800">Đang xử lý PDF...</p>
+                <p class="text-sm text-gray-500">Vui lòng đợi trong giây lát</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-20 py-8 text-center text-gray-400 text-sm border-t border-gray-200">
+        <p>&copy; 2024 PDF Merger Tool. Xử lý an toàn tại trình duyệt.</p>
+    </footer>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const fileSection = document.getElementById('fileSection');
+        const fileList = document.getElementById('fileList');
+        const fileCountSpan = document.getElementById('fileCount');
+        const mergeBtn = document.getElementById('mergeBtn');
+        const loader = document.getElementById('loader');
+
+        let filesArray = [];
+
+        // Khởi tạo Sortable để kéo thả sắp xếp
+        const sortable = new Sortable(fileList, {
+            animation: 150,
+            ghostClass: 'ghost',
+            onEnd: () => {
+                // Cập nhật lại mảng filesArray dựa trên thứ tự mới của DOM
+                const newOrder = Array.from(fileList.children).map(item => parseInt(item.dataset.index));
+                const reorderedFiles = newOrder.map(idx => filesArray.find(f => f.id === idx));
+                filesArray = reorderedFiles;
+            }
+        });
+
+        // Xử lý sự kiện kéo thả
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('drag-over');
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('drag-over');
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            const pdfFiles = Array.from(files).filter(file => file.type === 'application/pdf');
+            
+            if (pdfFiles.length === 0) return;
+
+            pdfFiles.forEach(file => {
+                const id = Date.now() + Math.random();
+                filesArray.push({ id, file });
+            });
+
+            updateUI();
+        }
+
+        function removeFile(id) {
+            filesArray = filesArray.filter(f => f.id !== id);
+            updateUI();
+        }
+
+        function clearFiles() {
+            filesArray = [];
+            updateUI();
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function updateUI() {
+            if (filesArray.length > 0) {
+                fileSection.classList.remove('hidden');
+                fileList.innerHTML = '';
+                
+                filesArray.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between cursor-move';
+                    div.dataset.index = item.id;
+                    div.innerHTML = `
+                        <div class="flex items-center space-x-4 overflow-hidden">
+                            <div class="text-red-500 text-xl flex-shrink-0">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div class="overflow-hidden">
+                                <p class="text-sm font-semibold text-gray-800 truncate">${item.file.name}</p>
+                                <p class="text-xs text-gray-500">${formatBytes(item.file.size)}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <button onclick="removeFile(${item.id})" class="text-gray-400 hover:text-red-500 p-2 transition-colors">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                            <div class="text-gray-300">
+                                <i class="fas fa-bars"></i>
+                            </div>
+                        </div>
+                    `;
+                    fileList.appendChild(div);
+                });
+
+                fileCountSpan.innerText = filesArray.length;
+                mergeBtn.disabled = filesArray.length < 2;
+            } else {
+                fileSection.classList.add('hidden');
+                fileInput.value = '';
+            }
+        }
+
+        // Logic ghép PDF
+        mergeBtn.addEventListener('click', async () => {
+            if (filesArray.length < 2) return;
+
+            loader.classList.remove('hidden');
+
+            try {
+                const mergedPdf = await PDFLib.PDFDocument.create();
+
+                for (const item of filesArray) {
+                    const fileBytes = await item.file.arrayBuffer();
+                    const pdf = await PDFLib.PDFDocument.load(fileBytes);
+                    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                    copiedPages.forEach((page) => mergedPdf.addPage(page));
+                }
+
+                const mergedPdfBytes = await mergedPdf.save();
+                
+                // Tạo blob và tải về
+                const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `merged_${new Date().getTime()}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+            } catch (error) {
+                console.error(error);
+                alert('Đã có lỗi xảy ra trong quá trình ghép file. Vui lòng kiểm tra lại file của bạn.');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

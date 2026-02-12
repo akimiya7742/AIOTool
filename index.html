@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebTools - Công Cụ Trực Tuyến Miễn Phí</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        // Khởi tạo cấu hình Tailwind cho Dark Mode
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        main {
+            flex: 1 0 auto;
+        }
+
+        .tool-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 transition-colors duration-300 dark:bg-slate-900 dark:text-slate-100">
+
+    <!-- Header / Navigation -->
+    <nav class="z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 dark:bg-slate-900/80 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <a href="index.html" class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                            <i class="fas fa-toolbox"></i>
+                        </div>
+                        <span class="text-xl font-bold tracking-tight text-slate-800 dark:text-white">WebTools</span>
+                    </a>
+                </div>
+                <div class="hidden md:flex items-center space-x-8 text-sm font-medium text-slate-600 dark:text-slate-400">
+                    <a href="#" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Tất cả công cụ</a>
+                    <a href="#" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Yêu thích</a>
+                    <a href="#" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Liên hệ</a>
+                </div>
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main>
+        <!-- Hero Section -->
+        <header class="py-16 px-4">
+            <div class="max-w-4xl mx-auto text-center">
+                <h1 class="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight dark:text-white">
+                    Mọi công cụ bạn cần <br>
+                    <span class="gradient-text">Ngay trên trình duyệt</span>
+                </h1>
+                <p class="text-lg text-slate-600 dark:text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto">
+                    Sử dụng các công cụ xử lý file, hình ảnh và mã QR hoàn toàn miễn phí, nhanh chóng và bảo mật. Không cần cài đặt.
+                </p>
+                
+                <!-- Search Bar -->
+                <div class="relative max-w-xl mx-auto">
+                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" 
+                           placeholder="Tìm kiếm công cụ (ví dụ: PDF, QR...)" 
+                           class="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white dark:bg-slate-800 shadow-sm transition-all dark:text-white">
+                </div>
+            </div>
+        </header>
+
+        <!-- Tools Grid -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                <!-- QR Tool Card -->
+                <a href="/tools/qrcode.html" class="tool-card group p-8 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 flex flex-col items-start shadow-sm hover:shadow-xl transition-all">
+                    <div class="w-14 h-14 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                        <i class="fas fa-qrcode text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-800 dark:text-white">Tạo & Scan mã QR</h3>
+                    <p class="text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                        Tạo mã QR cá nhân cho link, văn bản hoặc wifi. Đồng thời hỗ trợ quét mã từ camera hoặc file ảnh.
+                    </p>
+                    <span class="mt-auto text-sm font-semibold text-purple-600 dark:text-purple-400 flex items-center gap-2">
+                        Sử dụng ngay <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
+                    </span>
+                </a>
+
+                <!-- PDF Merge Card -->
+                <a href="/tools/pdfmerge.html" class="tool-card group p-8 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 flex flex-col items-start shadow-sm hover:shadow-xl transition-all">
+                    <div class="w-14 h-14 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-red-600 group-hover:text-white transition-colors">
+                        <i class="fas fa-file-pdf text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-800 dark:text-white">Ghép nối PDF</h3>
+                    <p class="text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                        Kết hợp nhiều file PDF thành một tài liệu duy nhất chỉ với vài cú click chuột. Giữ nguyên chất lượng.
+                    </p>
+                    <span class="mt-auto text-sm font-semibold text-red-600 dark:text-red-400 flex items-center gap-2">
+                        Sử dụng ngay <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
+                    </span>
+                </a>
+
+                <!-- Image to PDF Card -->
+                <a href="/tools/img2pdf.html" class="tool-card group p-8 bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 flex flex-col items-start shadow-sm hover:shadow-xl transition-all">
+                    <div class="w-14 h-14 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                        <i class="fas fa-images text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-slate-800 dark:text-white">Ảnh sang PDF</h3>
+                    <p class="text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                        Chuyển đổi các định dạng ảnh JPG, PNG sang file PDF chuyên nghiệp trong vài giây.
+                    </p>
+                    <span class="mt-auto text-sm font-semibold text-orange-600 dark:text-orange-400 flex items-center gap-2">
+                        Sử dụng ngay <i class="fas fa-arrow-right text-xs transition-transform group-hover:translate-x-1"></i>
+                    </span>
+                </a>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="flex-shrink-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-12 transition-colors duration-300">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-slate-400 dark:text-slate-500 text-sm">
+                &copy; 2024 WebTools - Được xây dựng để giúp bạn làm việc hiệu quả hơn.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const html = document.documentElement;
+
+        // Kiểm tra cài đặt hệ thống hoặc localStorage
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            html.classList.add('dark');
+            themeIcon.classList.replace('fa-moon', 'fa-sun');
+        } else {
+            html.classList.remove('dark');
+            themeIcon.classList.replace('fa-sun', 'fa-moon');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.theme = 'light';
+                themeIcon.classList.replace('fa-sun', 'fa-moon');
+            } else {
+                html.classList.add('dark');
+                localStorage.theme = 'dark';
+                themeIcon.classList.replace('fa-moon', 'fa-sun');
+            }
+        });
+    </script>
+</body>
+</html>

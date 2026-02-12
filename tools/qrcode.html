@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Thư viện tạo mã QR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
+    <!-- Thư viện đọc mã QR -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(229, 231, 235, 0.5);
+        }
+        #video-preview {
+            transform: scaleX(-1);
+        }
+        .color-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input[type="color"] {
+            inline-size: 40px;
+            block-size: 40px;
+            padding: 0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold text-indigo-600 mb-2">QR Master Pro</h1>
+            <p class="text-slate-500">Tùy chỉnh mã QR chuyên nghiệp với màu sắc và Logo</p>
+        </header>
+
+        <div class="grid lg:grid-cols-3 gap-8">
+            
+            <!-- SECTION 1: CUSTOMIZER (BẢNG ĐIỀU KHIỂN) -->
+            <section class="lg:col-span-2 glass-morphism p-6 rounded-2xl shadow-xl space-y-6">
+                <div class="flex items-center space-x-2 border-b pb-4">
+                    <div class="bg-indigo-100 p-2 rounded-lg text-indigo-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </div>
+                    <h2 class="text-xl font-bold">Cấu hình mã QR</h2>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Nhập nội dung -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-semibold text-slate-600 mb-2">Nội dung (URL/Văn bản)</label>
+                        <input type="text" id="qr-input" placeholder="https://example.com" 
+                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                    </div>
+
+                    <!-- Chỉnh màu -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2">Màu sắc</label>
+                        <div class="space-y-3">
+                            <div class="color-input-wrapper">
+                                <input type="color" id="color-dark" value="#4f46e5">
+                                <span class="text-sm">Màu mã (Dark)</span>
+                            </div>
+                            <div class="color-input-wrapper">
+                                <input type="color" id="color-light" value="#ffffff">
+                                <span class="text-sm">Màu nền (Light)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chèn Logo -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2">Chèn Logo (Icon)</label>
+                        <label class="flex items-center justify-center w-full px-4 py-2 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                            <span id="logo-status" class="text-sm text-slate-500">Chọn ảnh Logo...</span>
+                            <input type="file" id="logo-input" class="hidden" accept="image/*" onchange="handleLogoUpload(event)">
+                        </label>
+                        <p class="text-[10px] text-slate-400 mt-1">* Khuyến nghị ảnh vuông, định dạng PNG/JPG</p>
+                    </div>
+
+                    <!-- Độ sửa lỗi -->
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-600 mb-2">Mức độ sửa lỗi (Error Correction)</label>
+                        <select id="error-level" class="w-full px-4 py-2 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="L">Thấp (7%)</option>
+                            <option value="M">Trung bình (15%)</option>
+                            <option value="Q">Cao (25%)</option>
+                            <option value="H" selected>Rất cao (30%) - Nên chọn khi chèn Logo</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="pt-4">
+                    <button onclick="generateQR()" 
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-[0.98]">
+                        Tạo & Cập nhật mã QR
+                    </button>
+                </div>
+            </section>
+
+            <!-- SECTION 2: PREVIEW & TOOLS -->
+            <section class="space-y-8">
+                <!-- Preview -->
+                <div class="glass-morphism p-6 rounded-2xl shadow-xl flex flex-col items-center">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase mb-4">Xem trước</h3>
+                    <div id="qr-result-container" class="bg-white p-4 rounded-xl shadow-inner border border-slate-100 min-h-[200px] flex items-center justify-center w-full">
+                        <canvas id="qr-canvas" class="max-w-full h-auto"></canvas>
+                    </div>
+                    <button onclick="downloadQR()" id="btn-download" class="hidden mt-4 text-indigo-600 font-bold hover:underline flex items-center transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Tải mã QR (Chất lượng cao)
+                    </button>
+                </div>
+
+                <!-- Reader Tool -->
+                <div class="glass-morphism p-6 rounded-2xl shadow-xl">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase mb-4">Đọc mã QR</h3>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <button onclick="startScanner()" class="bg-emerald-600 text-white py-2 rounded-lg text-xs font-bold active:scale-95 transition-all">Mở Camera</button>
+                        <label class="bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-bold text-center cursor-pointer active:scale-95 transition-all">
+                            Chọn ảnh
+                            <input type="file" class="hidden" accept="image/*" onchange="readQRFromFile(event)">
+                        </label>
+                    </div>
+                    
+                    <div id="video-container" class="hidden relative overflow-hidden rounded-xl bg-black mb-4 aspect-video">
+                        <video id="video-preview" class="w-full h-full object-cover"></video>
+                        <button onclick="stopScanner()" class="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full text-[10px]">✕</button>
+                    </div>
+
+                    <div id="scan-result" class="hidden p-3 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Kết quả:</p>
+                        <p id="result-text" class="text-xs text-indigo-600 break-all font-medium leading-tight"></p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl transition-all opacity-0 pointer-events-none z-50">
+        Thông báo!
+    </div>
+
+    <script>
+        const qrInput = document.getElementById('qr-input');
+        const qrCanvas = document.getElementById('qr-canvas');
+        const colorDark = document.getElementById('color-dark');
+        const colorLight = document.getElementById('color-light');
+        const errorLevel = document.getElementById('error-level');
+        const video = document.getElementById('video-preview');
+        const videoContainer = document.getElementById('video-container');
+        const scanResult = document.getElementById('scan-result');
+        const resultText = document.getElementById('result-text');
+        
+        let logoImage = null;
+        let scanning = false;
+
+        // --- HÀM TẠO MÃ QR NÂNG CAO ---
+        async function generateQR() {
+            const text = qrInput.value.trim();
+            if (!text) {
+                showToast("Vui lòng nhập nội dung!");
+                return;
+            }
+
+            try {
+                // 1. Tạo mã QR cơ bản lên canvas ẩn trước để lấy tọa độ
+                const tempCanvas = document.createElement('canvas');
+                await QRCode.toCanvas(tempCanvas, text, {
+                    width: 600, // Độ phân giải cao để logo không bị mờ
+                    margin: 2,
+                    errorCorrectionLevel: errorLevel.value,
+                    color: {
+                        dark: colorDark.value,
+                        light: colorLight.value
+                    }
+                });
+
+                // 2. Chuẩn bị canvas chính
+                const ctx = qrCanvas.getContext('2d');
+                qrCanvas.width = 600;
+                qrCanvas.height = 600;
+                ctx.drawImage(tempCanvas, 0, 0);
+
+                // 3. Nếu có Logo, vẽ Logo đè lên trung tâm
+                if (logoImage) {
+                    const logoSize = qrCanvas.width * 0.22; // Logo chiếm khoảng 22% diện tích
+                    const x = (qrCanvas.width - logoSize) / 2;
+                    const y = (qrCanvas.height - logoSize) / 2;
+
+                    // Vẽ viền trắng bo tròn cho Logo (để mã QR dễ đọc hơn quanh logo)
+                    ctx.fillStyle = colorLight.value;
+                    const padding = 10;
+                    ctx.beginPath();
+                    ctx.roundRect(x - padding, y - padding, logoSize + padding*2, logoSize + padding*2, 12);
+                    ctx.fill();
+
+                    // Vẽ Logo chính
+                    ctx.drawImage(logoImage, x, y, logoSize, logoSize);
+                }
+
+                document.getElementById('btn-download').classList.remove('hidden');
+                showToast("Đã tạo mã QR mới!");
+            } catch (err) {
+                console.error(err);
+                showToast("Lỗi khi tạo mã QR.");
+            }
+        }
+
+        // --- XỬ LÝ UPLOAD LOGO ---
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    logoImage = img;
+                    document.getElementById('logo-status').innerText = "Đã chọn: " + file.name;
+                    document.getElementById('logo-status').classList.add('text-indigo-600');
+                    generateQR(); // Tự động cập nhật preview
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function downloadQR() {
+            const link = document.createElement('a');
+            link.download = 'qr-custom.png';
+            link.href = qrCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // --- HÀM QUÉT MÃ QR (GIỮ NGUYÊN TỪ BẢN TRƯỚC) ---
+        async function startScanner() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true);
+                video.play();
+                scanning = true;
+                videoContainer.classList.remove('hidden');
+                requestAnimationFrame(tick);
+            } catch (err) {
+                showToast("Không thể mở Camera.");
+            }
+        }
+
+        function stopScanner() {
+            scanning = false;
+            if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+            videoContainer.classList.add('hidden');
+        }
+
+        function tick() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA && scanning) {
+                const canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(video, 0, 0);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                if (code) {
+                    showResult(code.data);
+                    stopScanner();
+                    return;
+                }
+            }
+            if (scanning) requestAnimationFrame(tick);
+        }
+
+        function readQRFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width; canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const code = jsQR(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
+                    if (code) showResult(code.data);
+                    else showToast("Không tìm thấy mã QR.");
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showResult(text) {
+            resultText.innerText = text;
+            scanResult.classList.remove('hidden');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+        }
+    </script>
+</body>
+</html>
